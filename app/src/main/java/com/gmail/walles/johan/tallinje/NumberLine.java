@@ -10,15 +10,19 @@ import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 
 import java.text.NumberFormat;
 import java.util.Locale;
 
-public class NumberLine extends View {
+public class NumberLine extends View implements GestureDetector.OnGestureListener {
     private Paint numbersPaint;
     private double centerCoordinate = 0.0;
     private double coordinatesPerDecimeter = 10.0;
+
+    private final GestureDetector gestureDetector;
 
     private static final NumberFormat numberFormat =
             NumberFormat.getNumberInstance(Locale.getDefault());
@@ -30,6 +34,13 @@ public class NumberLine extends View {
         numbersPaint.setColor(Color.BLACK);
         numbersPaint.setTextSize(100);
         numbersPaint.setTextAlign(Paint.Align.CENTER);
+
+        gestureDetector = new GestureDetector(context, this);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        return gestureDetector.onTouchEvent(event);
     }
 
     static String formatToPrecision(double number, double step) {
@@ -76,5 +87,42 @@ public class NumberLine extends View {
         canvas.drawText(Long.toString(System.currentTimeMillis()), 100f, 100f, numbersPaint);
 
         drawNumbers(canvas);
+    }
+
+    @Override
+    public boolean onDown(MotionEvent e) {
+        return true;
+    }
+
+    @Override
+    public void onShowPress(MotionEvent e) {
+
+    }
+
+    @Override
+    public boolean onSingleTapUp(MotionEvent e) {
+        return false;
+    }
+
+    @Override
+    public boolean onScroll(MotionEvent e1, MotionEvent e2, float pixelsX, float pixelsY) {
+        DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
+        double pixelsPerMm = displayMetrics.xdpi / 25.4;
+        double pixelsPerDm = pixelsPerMm * 100.0;
+        double coordinatesX = (pixelsX / pixelsPerDm) * coordinatesPerDecimeter;
+        centerCoordinate += coordinatesX;
+        invalidate();
+
+        return true;
+    }
+
+    @Override
+    public void onLongPress(MotionEvent e) {
+
+    }
+
+    @Override
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        return false;
     }
 }
