@@ -12,17 +12,22 @@ import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 
 import java.text.NumberFormat;
 import java.util.Locale;
 
-public class NumberLine extends View implements GestureDetector.OnGestureListener {
+public class NumberLine extends View implements
+        GestureDetector.OnGestureListener,
+        ScaleGestureDetector.OnScaleGestureListener
+{
     private Paint numbersPaint;
     private double centerCoordinate = 0.0;
     private double coordinatesPerDecimeter = 10.0;
 
     private final GestureDetector gestureDetector;
+    private final ScaleGestureDetector scaleGestureDetector;
 
     private static final NumberFormat numberFormat =
             NumberFormat.getNumberInstance(Locale.getDefault());
@@ -36,11 +41,15 @@ public class NumberLine extends View implements GestureDetector.OnGestureListene
         numbersPaint.setTextAlign(Paint.Align.CENTER);
 
         gestureDetector = new GestureDetector(context, this);
+        scaleGestureDetector = new ScaleGestureDetector(context, this);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        return gestureDetector.onTouchEvent(event);
+        boolean handled = scaleGestureDetector.onTouchEvent(event);
+        handled = gestureDetector.onTouchEvent(event) || handled;
+
+        return handled || super.onTouchEvent(event);
     }
 
     static String formatToPrecision(double number, double step) {
@@ -124,5 +133,23 @@ public class NumberLine extends View implements GestureDetector.OnGestureListene
     @Override
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
         return false;
+    }
+
+    @Override
+    public boolean onScale(ScaleGestureDetector detector) {
+        coordinatesPerDecimeter /= detector.getScaleFactor();
+        invalidate();
+
+        return true;
+    }
+
+    @Override
+    public boolean onScaleBegin(ScaleGestureDetector detector) {
+        return true;
+    }
+
+    @Override
+    public void onScaleEnd(ScaleGestureDetector detector) {
+        // This method intentionally left blank
     }
 }
