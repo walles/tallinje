@@ -7,3 +7,7 @@
 /build
 /captures
 .externalNativeBuild
+
+# With Android Studio 3.0.1 this launcher gets updated regularly with a timestamp, adding noise
+# to our version control. Ignore it for now, even though we'd like to version it.
+/.idea/runConfigurations/Tallinje.xml
