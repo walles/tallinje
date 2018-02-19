@@ -12,11 +12,16 @@ import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.View;
 
+import java.text.NumberFormat;
+import java.util.Locale;
+
 public class NumberLine extends View {
     private Paint numbersPaint;
     private double centerCoordinate = 0.0;
     private double coordinatesPerDecimeter = 10.0;
-    private final static DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
+
+    private static final NumberFormat numberFormat =
+            NumberFormat.getNumberInstance(Locale.getDefault());
 
     public NumberLine(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -27,12 +32,9 @@ public class NumberLine extends View {
         numbersPaint.setTextAlign(Paint.Align.CENTER);
     }
 
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-
-        // FIXME: Pre-compute stuff for onDraw(), see:
-        // https://developer.android.com/training/custom-views/custom-drawing.html#layouteevent
+    static String formatToPrecision(double number, double step) {
+        double roundedToStep = Math.round(number / step) * step;
+        return numberFormat.format((long)roundedToStep);
     }
 
     private void drawNumbers(Canvas canvas) {
@@ -40,6 +42,7 @@ public class NumberLine extends View {
 
         Rect clipBounds = canvas.getClipBounds();
         int widthPixels = clipBounds.right - clipBounds.left;
+        DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
         double widthMm = widthPixels / TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_MM, 1, displayMetrics);
         double widthCoordinates = coordinatesPerDecimeter / (widthMm / 100.0);
 
@@ -62,8 +65,7 @@ public class NumberLine extends View {
             // will fail if we ever get to do a partial redraw.
             double pixelY = (clipBounds.top + clipBounds.bottom) / 2;
 
-            canvas.drawText(Double.toString(x),
-                    (float)pixelX, (float)pixelY, numbersPaint);
+            canvas.drawText(formatToPrecision(x, step), (float)pixelX, (float)pixelY, numbersPaint);
         }
     }
 
