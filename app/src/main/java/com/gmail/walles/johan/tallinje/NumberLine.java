@@ -25,8 +25,14 @@ public class NumberLine extends View implements
     private static final double MAX_STEPS_PER_DECIMETER = 13.0;
     private static final double MIN_STEPS_PER_DECIMETER = 5.0;
     private static final float NUMBERS_HEIGHT_MM = 5;
+    private static final float LINE_HEIGHT_MM = 1.5f;
+    private static final float TICKLINE_THICKNESS_MM = 0.5f;
+    private static final float TICKLINE_HEIGHT_MM = 2f;
 
-    private Paint numbersPaint;
+    private final Paint numbersPaint;
+    private final Paint linePaint;
+    private final Paint tickLinePaint;
+
     private double centerCoordinate = 0.0;
     private double coordinatesPerDecimeter = 10.0;
     private double step = 1.0;
@@ -42,12 +48,24 @@ public class NumberLine extends View implements
 
         numbersPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         numbersPaint.setColor(Color.BLACK);
-        DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
-        numbersPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_MM, NUMBERS_HEIGHT_MM, displayMetrics));
+        numbersPaint.setTextSize(mmToPx(NUMBERS_HEIGHT_MM));
         numbersPaint.setTextAlign(Paint.Align.CENTER);
+
+        linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        linePaint.setColor(Color.BLACK);
+        linePaint.setStrokeWidth(mmToPx(LINE_HEIGHT_MM));
+
+        tickLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        tickLinePaint.setColor(Color.BLACK);
+        tickLinePaint.setStrokeWidth(mmToPx(TICKLINE_THICKNESS_MM));
 
         gestureDetector = new GestureDetector(context, this);
         scaleGestureDetector = new ScaleGestureDetector(context, this);
+    }
+
+    private float mmToPx(double mm) {
+        DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_MM, (float)mm, displayMetrics);
     }
 
     @Override
@@ -128,8 +146,6 @@ public class NumberLine extends View implements
     }
 
     private void drawNumbers(Canvas canvas) {
-        adjustStep();
-
         Rect clipBounds = canvas.getClipBounds();
         int widthPixels = clipBounds.right - clipBounds.left;
         DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
@@ -156,16 +172,31 @@ public class NumberLine extends View implements
             double pixelY = (clipBounds.top + clipBounds.bottom) / 2;
 
             canvas.drawText(formatToPrecision(x, step), (float)pixelX, (float)pixelY, numbersPaint);
+            canvas.drawLine(
+                    (float)pixelX, (float)(pixelY + numbersPaint.getTextSize() * 0.5),
+                    (float)pixelX, (float)(pixelY + numbersPaint.getTextSize() * 1.5),
+                    tickLinePaint);
         }
+    }
+
+    private void drawLine(Canvas canvas) {
+        Rect clipBounds = canvas.getClipBounds();
+        float y = (clipBounds.bottom + clipBounds.top) / 2;
+
+        y += numbersPaint.getTextSize();
+
+        canvas.drawLine(clipBounds.left, y, clipBounds.right, y, linePaint);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        canvas.drawText(Long.toString(System.currentTimeMillis()), 100f, 100f, numbersPaint);
+        adjustStep();
 
         drawNumbers(canvas);
+
+        drawLine(canvas);
     }
 
     @Override
