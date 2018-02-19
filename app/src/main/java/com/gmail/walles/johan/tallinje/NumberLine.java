@@ -24,6 +24,7 @@ public class NumberLine extends View implements
 {
     private static final double MAX_STEPS_PER_DECIMETER = 13.0;
     private static final double MIN_STEPS_PER_DECIMETER = 5.0;
+    private static final float NUMBERS_HEIGHT_MM = 5;
 
     private Paint numbersPaint;
     private double centerCoordinate = 0.0;
@@ -41,7 +42,8 @@ public class NumberLine extends View implements
 
         numbersPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         numbersPaint.setColor(Color.BLACK);
-        numbersPaint.setTextSize(100);
+        DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
+        numbersPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_MM, NUMBERS_HEIGHT_MM, displayMetrics));
         numbersPaint.setTextAlign(Paint.Align.CENTER);
 
         gestureDetector = new GestureDetector(context, this);
