@@ -22,9 +22,13 @@ public class NumberLine extends View implements
         GestureDetector.OnGestureListener,
         ScaleGestureDetector.OnScaleGestureListener
 {
+    private static final double MAX_STEPS_PER_DECIMETER = 13.0;
+    private static final double MIN_STEPS_PER_DECIMETER = 5.0;
+
     private Paint numbersPaint;
     private double centerCoordinate = 0.0;
     private double coordinatesPerDecimeter = 10.0;
+    private double step = 1.0;
 
     private final GestureDetector gestureDetector;
     private final ScaleGestureDetector scaleGestureDetector;
@@ -52,13 +56,77 @@ public class NumberLine extends View implements
         return handled || super.onTouchEvent(event);
     }
 
+    static int countDecimals(double number) {
+        String roundedString = String.format(Locale.ENGLISH,"%s", number);
+        int count = roundedString.length() - roundedString.indexOf('.') - 1;
+        if (count < 10) {
+            return count;
+        }
+
+        // Maybe "0.600000000000001"?
+        // Remove last digit
+        roundedString = roundedString.substring(0, roundedString.length() - 1);
+        // Remove trailing zeroes
+        roundedString = roundedString.replaceAll("0*$", "");
+        // Try again
+        return roundedString.length() - roundedString.indexOf('.') - 1;
+    }
+
     static String formatToPrecision(double number, double step) {
         double roundedToStep = Math.round(number / step) * step;
-        return numberFormat.format((long)roundedToStep);
+
+        if (step >= 1.0) {
+            return numberFormat.format((long)roundedToStep);
+        } else {
+            numberFormat.setMaximumFractionDigits(countDecimals(roundedToStep));
+
+            return numberFormat.format(roundedToStep);
+        }
+    }
+
+    static int getStepDigit(double step) {
+        if (step >= 1.0) {
+            return Integer.parseInt(Long.toString((long)step).substring(0, 1));
+        }
+
+        String stepString = Double.toString(step);
+        return Integer.parseInt(stepString.substring(stepString.length() - 1));
+    }
+
+    private void adjustStep() {
+        while (coordinatesPerDecimeter / step > MAX_STEPS_PER_DECIMETER) {
+            step = increaseStep(step);
+        }
+
+        while (coordinatesPerDecimeter / step < MIN_STEPS_PER_DECIMETER) {
+            step = decreaseStep(step);
+        }
+    }
+
+    static double decreaseStep(double step) {
+        int stepDigit = getStepDigit(step);
+
+        if (stepDigit == 1) {
+            return step / 2.0;
+        }
+
+        if (stepDigit == 2) {
+            return step / 2.0;
+        }
+
+        return 2.0 * step / 5.0;
+    }
+
+    static double increaseStep(double step) {
+        if (getStepDigit(step) == 2) {
+            return step * (5.0 / 2.0);
+        } else {
+            return step * 2.0;
+        }
     }
 
     private void drawNumbers(Canvas canvas) {
-        double step = 1.0;
+        adjustStep();
 
         Rect clipBounds = canvas.getClipBounds();
         int widthPixels = clipBounds.right - clipBounds.left;
