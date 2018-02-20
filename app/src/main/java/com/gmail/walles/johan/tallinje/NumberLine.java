@@ -148,6 +148,13 @@ public class NumberLine extends View implements
     private void drawNumbers(Canvas canvas) {
         Rect clipBounds = canvas.getClipBounds();
         int widthPixels = clipBounds.right - clipBounds.left;
+        if (widthPixels == 0) {
+            // This happens while Android Studio tries to preview us and leads to an infinite loop
+            // if we don't catch it. x0 and x1 both become negative and positive Infinity if the
+            // width is zero.
+            return;
+        }
+
         DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
         double widthMm = widthPixels / TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_MM, 1, displayMetrics);
         double widthCoordinates = coordinatesPerDecimeter / (widthMm / 100.0);
