@@ -26,9 +26,12 @@ public class NumberLineTest {
         Assert.assertThat(NumberLine.getStepDigit(5.0), is(5));
         Assert.assertThat(NumberLine.getStepDigit(2.0), is(2));
         Assert.assertThat(NumberLine.getStepDigit(1.0), is(1));
+
         Assert.assertThat(NumberLine.getStepDigit(0.5), is(5));
         Assert.assertThat(NumberLine.getStepDigit(0.2), is(2));
         Assert.assertThat(NumberLine.getStepDigit(0.1), is(1));
+
+        Assert.assertThat(NumberLine.getStepDigit(0.0000005), is(5));
     }
 
     @Test

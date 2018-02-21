@@ -119,18 +119,51 @@ public class NumberLine extends View implements
             return Integer.parseInt(Long.toString((long)step).substring(0, 1));
         }
 
-        String stepString = Double.toString(step);
-        return Integer.parseInt(stepString.substring(stepString.length() - 1));
+        String stepString = String.format(Locale.ENGLISH, "%.3E", step);
+        if (!".000E".equals(stepString.substring(1, 6))) {
+            throw new IllegalArgumentException("Illegal step: " + step + ", formatted as: " + stepString);
+        }
+
+        // "5.0E-7" for example
+        return stepString.charAt(0) - '0';
+    }
+
+    private static boolean isValidStep(double step) {
+        int stepDigit = getStepDigit(step);
+        if (stepDigit == 1) {
+            return true;
+        }
+        if (stepDigit == 2) {
+            return true;
+        }
+        if (stepDigit == 5) {
+            return true;
+        }
+        return false;
     }
 
     private void adjustStep() {
+        double stepBefore = step;
+
+        boolean increased = false;
         while (coordinatesPerDecimeter / step > MAX_STEPS_PER_DECIMETER) {
             step = increaseStep(step);
+            increased = true;
         }
 
+        boolean decreased = false;
         while (coordinatesPerDecimeter / step < MIN_STEPS_PER_DECIMETER) {
             step = decreaseStep(step);
+            decreased = true;
         }
+
+        if (isValidStep(step)) {
+            return;
+        }
+
+        throw new InternalError(String.format(Locale.getDefault(),
+                "Step adjusted from %f to %f, increased=%b, decreased=%b",
+                stepBefore, stepBefore, increased, decreased));
     }
 
     static double decreaseStep(double step) {
