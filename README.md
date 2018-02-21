@@ -4,6 +4,7 @@ Android app that displays a number line.
 The intention is to help my daughter learn about decimal numbers.
 
 # TODO
+* Add medium-sized tickmarks under the non-major labels
 * Color line differently left and right of zero
 * Add fling gesture
 
@@ -14,3 +15,4 @@ The intention is to help my daughter learn about decimal numbers.
 * Add the actual line
 * Add tickmarks
 * Add minor tickmarks
+* Use smaller font for numbers above minor tickmarks

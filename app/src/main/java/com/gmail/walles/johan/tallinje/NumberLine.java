@@ -29,6 +29,7 @@ public class NumberLine extends View implements
     private static final float TICKLINE_THICKNESS_MM = 0.5f;
 
     private final Paint numbersPaint;
+    private final Paint minorNumbersPaint;
     private final Paint linePaint;
     private final Paint tickLinePaint;
     private final Paint minorTickLinePaint;
@@ -50,6 +51,11 @@ public class NumberLine extends View implements
         numbersPaint.setColor(Color.BLACK);
         numbersPaint.setTextSize(mmToPx(NUMBERS_HEIGHT_MM));
         numbersPaint.setTextAlign(Paint.Align.CENTER);
+
+        minorNumbersPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        minorNumbersPaint.setColor(Color.BLACK);
+        minorNumbersPaint.setTextSize(mmToPx(NUMBERS_HEIGHT_MM * 0.8));
+        minorNumbersPaint.setTextAlign(Paint.Align.CENTER);
 
         linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         linePaint.setColor(Color.BLACK);
@@ -186,7 +192,13 @@ public class NumberLine extends View implements
             double pixelX = scaler.xToPixels(x);
             double pixelY = scaler.pixelCenterY;
 
-            canvas.drawText(formatToPrecision(x, step), (float)pixelX, (float)pixelY, numbersPaint);
+            Paint paint;
+            if (scaler.isMajorCoordinate(x)) {
+                paint = numbersPaint;
+            } else {
+                paint = minorNumbersPaint;
+            }
+            canvas.drawText(formatToPrecision(x, step), (float)pixelX, (float)pixelY, paint);
         }
     }
 
@@ -352,5 +364,9 @@ public class NumberLine extends View implements
             }
         }
 
+        public boolean isMajorCoordinate(double x) {
+            double majorsCount = x / majorStep;
+            return Math.abs(majorsCount - Math.round(majorsCount)) < 0.0001;
+        }
     }
 }
