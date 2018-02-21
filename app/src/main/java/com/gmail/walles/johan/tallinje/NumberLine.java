@@ -197,6 +197,7 @@ public class NumberLine extends View implements
                 paint = numbersPaint;
             } else {
                 paint = minorNumbersPaint;
+                pixelY += numbersPaint.getTextSize() * 0.5;
             }
             canvas.drawText(formatToPrecision(x, step), (float)pixelX, (float)pixelY, paint);
         }
