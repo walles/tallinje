@@ -13,3 +13,4 @@ The intention is to help my daughter learn about decimal numbers.
 * Adapt step to the current scale
 * Add the actual line
 * Add tickmarks
+* Add minor tickmarks

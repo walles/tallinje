@@ -27,11 +27,11 @@ public class NumberLine extends View implements
     private static final float NUMBERS_HEIGHT_MM = 5;
     private static final float LINE_HEIGHT_MM = 1.5f;
     private static final float TICKLINE_THICKNESS_MM = 0.5f;
-    private static final float TICKLINE_HEIGHT_MM = 2f;
 
     private final Paint numbersPaint;
     private final Paint linePaint;
     private final Paint tickLinePaint;
+    private final Paint minorTickLinePaint;
 
     private double centerCoordinate = 0.0;
     private double coordinatesPerDecimeter = 10.0;
@@ -58,6 +58,10 @@ public class NumberLine extends View implements
         tickLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         tickLinePaint.setColor(Color.BLACK);
         tickLinePaint.setStrokeWidth(mmToPx(TICKLINE_THICKNESS_MM));
+
+        minorTickLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        minorTickLinePaint.setColor(Color.DKGRAY);
+        minorTickLinePaint.setStrokeWidth(mmToPx(TICKLINE_THICKNESS_MM * 0.5f));
 
         gestureDetector = new GestureDetector(context, this);
         scaleGestureDetector = new ScaleGestureDetector(context, this);
@@ -145,40 +149,28 @@ public class NumberLine extends View implements
         }
     }
 
-    private void drawNumbers(Canvas canvas) {
-        Rect clipBounds = canvas.getClipBounds();
-        int widthPixels = clipBounds.right - clipBounds.left;
-        if (widthPixels == 0) {
-            // This happens while Android Studio tries to preview us and leads to an infinite loop
-            // if we don't catch it. x0 and x1 both become negative and positive Infinity if the
-            // width is zero.
-            return;
+    private void drawMinorTicks(Canvas canvas) {
+        Scaler scaler = new Scaler(canvas);
+        for (double x = scaler.leftmostLabelCoordinate; x <= scaler.rightmostLabelCoordinate; x += scaler.minorStep) {
+            double pixelX = scaler.xToPixels(x);
+            double pixelY = scaler.pixelCenterY;
+
+            canvas.drawLine(
+                    (float)pixelX, (float)(pixelY + numbersPaint.getTextSize() * 0.7),
+                    (float)pixelX, (float)(pixelY + numbersPaint.getTextSize() * 1.3),
+                    minorTickLinePaint);
         }
+    }
 
-        DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
-        double widthMm = widthPixels / TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_MM, 1, displayMetrics);
-        double widthCoordinates = coordinatesPerDecimeter / (widthMm / 100.0);
+    private void drawMajorTicks(Canvas canvas) {
+        Scaler scaler = new Scaler(canvas);
+        for (double x = scaler.leftmostMajorTickCoordinate;
+                x <= scaler.rightmostMajorTickCoordinate;
+                x += scaler.majorStep)
+        {
+            double pixelX = scaler.xToPixels(x);
+            double pixelY = scaler.pixelCenterY;
 
-        double leftCoordinate = centerCoordinate - (widthCoordinates / 2);
-        double rightCoordinate = centerCoordinate + (widthCoordinates / 2);
-
-        // Compute the first coordinate outside of the screen on the left
-        double x0 = Math.floor(leftCoordinate / step) * step;
-
-        // Compute the first coordinate outside of the screen to the right
-        double x1 = Math.ceil(rightCoordinate / step) * step;
-
-        for (double x = x0; x <= x1; x += step) {
-            // Draw this number
-
-            // Convert x to pixels
-            double pixelX = clipBounds.left + widthPixels * ((x - leftCoordinate) / widthCoordinates);
-
-            // FIXME: Use *view* top and bottom, not *clip* top and bottom. Using the clip bounds
-            // will fail if we ever get to do a partial redraw.
-            double pixelY = (clipBounds.top + clipBounds.bottom) / 2;
-
-            canvas.drawText(formatToPrecision(x, step), (float)pixelX, (float)pixelY, numbersPaint);
             canvas.drawLine(
                     (float)pixelX, (float)(pixelY + numbersPaint.getTextSize() * 0.5),
                     (float)pixelX, (float)(pixelY + numbersPaint.getTextSize() * 1.5),
@@ -186,24 +178,45 @@ public class NumberLine extends View implements
         }
     }
 
-    private void drawLine(Canvas canvas) {
-        Rect clipBounds = canvas.getClipBounds();
-        float y = (clipBounds.bottom + clipBounds.top) / 2;
+    private void drawNumbers(Canvas canvas) {
+        Scaler scaler = new Scaler(canvas);
+        for (double x = scaler.leftmostLabelCoordinate; x <= scaler.rightmostLabelCoordinate; x += step) {
+            // Draw this number
 
+            double pixelX = scaler.xToPixels(x);
+            double pixelY = scaler.pixelCenterY;
+
+            canvas.drawText(formatToPrecision(x, step), (float)pixelX, (float)pixelY, numbersPaint);
+        }
+    }
+
+    private void drawLine(Canvas canvas) {
+        Scaler scaler = new Scaler(canvas);
+
+        float y = scaler.pixelCenterY;
         y += numbersPaint.getTextSize();
 
-        canvas.drawLine(clipBounds.left, y, clipBounds.right, y, linePaint);
+        canvas.drawLine(scaler.clipBounds.left, y, scaler.clipBounds.right, y, linePaint);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        if (canvas.getWidth() == 0 || canvas.getHeight() == 0) {
+            // This happens while Android Studio tries to preview us and leads to an infinite loop
+            // if we don't catch it. leftmostLabelCoordinate and rightmostLabelCoordinate both become negative and positive Infinity if the
+            // width is zero.
+            return;
+        }
+
         adjustStep();
 
-        drawNumbers(canvas);
-
+        drawMinorTicks(canvas);
+        drawMajorTicks(canvas);
         drawLine(canvas);
+
+        drawNumbers(canvas);
     }
 
     @Override
@@ -259,5 +272,85 @@ public class NumberLine extends View implements
     @Override
     public void onScaleEnd(ScaleGestureDetector detector) {
         // This method intentionally left blank
+    }
+
+    private class Scaler {
+        public final Rect clipBounds;
+
+        /**
+         * Leftmost label coordinate, outside of the screen.
+         */
+        public final double leftmostLabelCoordinate;
+
+        /**
+         * Rightmost label coordinate, outside of the screen.
+         */
+        public final double rightmostLabelCoordinate;
+
+        public final double minorStep;
+
+        public final double majorStep;
+        public final double leftmostMajorTickCoordinate;
+        public final double rightmostMajorTickCoordinate;
+
+        /**
+         * Screen midpoint Y in pixels.
+         */
+        public final float pixelCenterY;
+
+        /**
+         * Leftmost screen edge in coordinates.
+         */
+        private final double leftCoordinate;
+
+        /**
+         * Screen width in coordinates.
+         */
+        private final double widthCoordinates;
+
+        public Scaler(Canvas canvas) {
+            clipBounds = canvas.getClipBounds();
+
+            DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
+            double widthMm = clipBounds.width() / TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_MM, 1, displayMetrics);
+            widthCoordinates = coordinatesPerDecimeter / (widthMm / 100.0);
+
+            leftCoordinate = centerCoordinate - (widthCoordinates / 2);
+            double rightCoordinate = centerCoordinate + (widthCoordinates / 2);
+
+            // Compute the first coordinate outside of the screen on the left
+            leftmostLabelCoordinate = Math.floor(leftCoordinate / step) * step;
+
+            // Compute the first coordinate outside of the screen to the right
+            rightmostLabelCoordinate = Math.ceil(rightCoordinate / step) * step;
+
+            minorStep = getMinorStep(step);
+            majorStep = minorStep * 10.0;
+            leftmostMajorTickCoordinate = Math.floor(leftCoordinate / majorStep) * majorStep;
+            rightmostMajorTickCoordinate = Math.ceil(rightCoordinate / majorStep) * majorStep;
+
+            // FIXME: Use *view* top and bottom, not *clip* top and bottom. Using the clip bounds
+            // will fail if we ever get to do a partial redraw.
+            pixelCenterY = (clipBounds.top + clipBounds.bottom) / 2;
+        }
+
+        public double xToPixels(double x) {
+            return clipBounds.left + clipBounds.width() * ((x - leftCoordinate) / widthCoordinates);
+        }
+
+        private double getMinorStep(double step) {
+            int stepDigit = getStepDigit(step);
+            switch (stepDigit) {
+                case 1:
+                    return step / 10.0;
+                case 2:
+                    return step / 2.0;
+                case 5:
+                    return step / 5.0;
+                default:
+                    throw new IllegalArgumentException("Step: " + step + ", step digit: " + stepDigit);
+            }
+        }
+
     }
 }
