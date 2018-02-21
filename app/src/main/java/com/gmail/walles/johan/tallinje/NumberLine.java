@@ -335,7 +335,7 @@ public class NumberLine extends View implements
             leftmostLabelCoordinate = Math.floor(leftCoordinate / step) * step;
 
             // Compute the first coordinate outside of the screen to the right
-            rightmostLabelCoordinate = Math.ceil(rightCoordinate / step) * step;
+            rightmostLabelCoordinate = (Math.ceil(rightCoordinate / step) + 1) * step;
 
             minorStep = getMinorStep(step);
             majorStep = minorStep * 10.0;
